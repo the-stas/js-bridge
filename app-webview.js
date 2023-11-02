@@ -2,6 +2,7 @@
     'use strict';
 
     const container = document.getElementById( 'root' );
+    const contentType = 'image/png';
 
     init();
 
@@ -13,10 +14,10 @@
         window.dispatchImageLoading = dispatchImageLoading;
     }
 
-    function dispatchImageLoading( imageBase64 ) {
+    function dispatchImageLoading( imagesBase64 ) {
         const event = new CustomEvent( 'webViewImageLoaded', {
                 detail: {
-                    image: imageBase64,
+                    images: imagesBase64,
                 },
             },
         );
@@ -31,7 +32,7 @@
         const byteCharacters = atob( b64Data );
         const byteArrays = [];
 
-        for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {
+        for ( let offset = 0; offset < byteCharacters.length; offset += sliceSize ) {
             const slice = byteCharacters.slice( offset, offset + sliceSize );
 
             const byteNumbers = new Array( slice.length );
@@ -43,34 +44,40 @@
             byteArrays.push( byteArray );
         }
 
-        const blob = new Blob( byteArrays, { type: contentType } );
-        return blob;
+        return new Blob( byteArrays, { type: contentType } );
     };
 
     window.addEventListener( 'webViewImageLoaded', function ( event ) {
         const data = event.detail;
-        const imageBase64 = data.image;
-        const contentType = 'image/png';
-        const blob = b64toBlob( imageBase64, contentType );
-        const blobUrl = URL.createObjectURL( blob );
+        const imagesBase64 = data.images;
+        const urls = [];
 
-        container.insertAdjacentHTML( 'afterbegin', createMarkup( blobUrl ) );
+        for ( const imageBase64 of imagesBase64 ) {
+            const blob = b64toBlob( imageBase64, contentType );
+            const blobUrl = URL.createObjectURL( blob );
+
+            urls.push( blobUrl );
+            // URL.revokeObjectURL( blobUrl );
+        }
+
+        container.insertAdjacentHTML( 'afterbegin', createMarkup( urls ) );
     } );
 
-    function createMarkup( blobUrl ) {
-        const link = downloadBlob( blobUrl, 'target.png' );
-
+    function createMarkup( blobUrls ) {
         return (
             `<div style="border: 2px solid darkslateblue;padding: 20px;max-width: 360px;margin: 0 auto 20px;">
                 <h3 style="margin-bottom: 20px;">
                     Yay! it works!
                 </h3>
                 <p style="margin-bottom: 40px;">
-                    Image from ios native camera:
+                    Images from ios native camera:
                 </p>
-                <img src="${ blobUrl }" style="max-width: 320px; max-height: 600px;">
+                <ol>
+                    ${
+                        blobUrls.map( ( blobUrl ) => createListItem( blobUrl ) )
+                    }
+                </ol>
                 <br>
-                ${ link.outerHTML }
             </div>`
         );
     }
@@ -99,5 +106,13 @@
         a.addEventListener( 'click', clickHandler, false );
 
         return a;
+    }
+
+    function createListItem( blobUrl ) {
+        return `
+            <li style="padding: 20px;">
+                <img src="${ blobUrl }" style="max-width: 320px; max-height: 600px;" alt="">
+            </li>
+        `;
     }
 }() );
