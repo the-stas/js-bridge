@@ -2,6 +2,7 @@
     'use strict';
 
     const container = document.getElementById( 'root' );
+    const loadingOverlay = document.querySelector('.loading');
     const contentType = 'image/png';
 
     init();
@@ -15,6 +16,7 @@
     }
 
     function dispatchImageLoading( imagesBase64 ) {
+        loadingOverlay.classList.remove( 'hidden' );
         const event = new CustomEvent( 'webViewImageLoaded', {
                 detail: {
                     images: imagesBase64,
@@ -61,6 +63,10 @@
         }
 
         container.insertAdjacentHTML( 'afterbegin', createMarkup( urls ) );
+        window.setTimeout( () => {
+            loadingOverlay.classList.add( 'hidden' );
+            container.classList.remove( 'hidden' );
+        }, 2000 );
     } );
 
     function createMarkup( blobUrls ) {
